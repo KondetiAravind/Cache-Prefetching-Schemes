@@ -1,0 +1,290 @@
+===================================================================
+   ADVANCED COMPUTER ARCHITECTURE LAB — FULL PROJECT COMMANDS
+   SIMPLESCALAR + CACHE PREFETCHING + MEMORY MODELING + CACTI
+===================================================================
+
+Project Root:
+    /home/aravind/Cache_Prefetching_Schemes
+
+This file contains ALL commands needed to reproduce the entire project
+from scratch — including SimpleScalar installation, prefetching
+experiments, stat parsing, AMAT computation, energy modeling, and CACTI
+integration.
+
+===================================================================
+PHASE 1 — SETUP AND BUILD SIMPLESCALAR
+===================================================================
+
+# Create main project directory
+mkdir Cache_Prefetching_Schemes
+cd Cache_Prefetching_Schemes
+
+# ----------------------------------
+# Clone SimpleScalar 3.0 (Todd Austin)
+# ----------------------------------
+mkdir simplescalar
+cd simplescalar
+
+git clone https://github.com/toddmaustin/simplesim-3.0.git
+
+# Enter simulator directory
+cd simplesim-3.0
+
+# Configure for PISA ISA
+make config-pisa
+
+# Build all simulator binaries
+make             # or: make -j$(nproc)
+
+# Return to project root
+cd ../../
+
+===================================================================
+PHASE 2 — CACHE PREFETCHING EXPERIMENTS
+===================================================================
+
+## The modified cache.c and cache.h (with nextline, oneblock, stride)
+## must be copied into the SimpleScalar directory before rebuilding.
+
+cp cache.c simplescalar/simplesim-3.0/cache.c
+cp cache.h simplescalar/simplesim-3.0/cache.h
+
+# Clean & rebuild SimpleScalar
+cd simplescalar/simplesim-3.0
+make clean
+make -j$(nproc)
+cd ../../
+
+# Prepare results directory
+mkdir -p results
+
+---------------------------------------------------
+BASELINE (no prefetching)
+---------------------------------------------------
+unset PREFETCH_MODE
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/baseline_test-math.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/test-math
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/baseline_test-fmath.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/test-fmath
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/baseline_anagram.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/anagram
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/baseline_test-llong.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/test-llong
+
+
+---------------------------------------------------
+NEXT-LINE PREFETCHING
+---------------------------------------------------
+export PREFETCH_MODE=nextline
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/nextline_test-math.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/test-math
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/nextline_test-fmath.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/test-fmath
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/nextline_anagram.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/anagram
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/nextline_test-llong.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/test-llong
+
+
+---------------------------------------------------
+ONE-BLOCK LOOKAHEAD PREFETCHING
+---------------------------------------------------
+export PREFETCH_MODE=oneblock
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/oneblock_test-math.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/test-math
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/oneblock_test-fmath.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/test-fmath
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/oneblock_anagram.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/anagram
+
+./simplescalar/simplesim-3.0/sim-outorder \
+  -max:inst 5000000 \
+  -redir:sim results/oneblock_test-llong.txt \
+  simplescalar/simplesim-3.0/tests/bin.little/test-llong
+
+# --------------------------
+# Total result files: 12
+# --------------------------
+# Stored in ./results
+
+===================================================================
+PHASE 3 — MEMORY MODELING, STATS PARSING, AMAT + ENERGY
+===================================================================
+
+# Create Memory Modeling folder
+mkdir -p Memory_Modeling/scripts
+mkdir -p Memory_Modeling/parsed
+
+---------------------------------------------------
+STEP 1 — PARSE SIMPLESIM STAT OUTPUTS INTO JSON
+---------------------------------------------------
+
+# test-math
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/baseline_test-math.txt  --out Memory_Modeling/parsed/baseline_test-math.json
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/nextline_test-math.txt  --out Memory_Modeling/parsed/nextline_test-math.json
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/oneblock_test-math.txt  --out Memory_Modeling/parsed/oneblock_test-math.json
+
+# test-fmath
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/baseline_test-fmath.txt  --out Memory_Modeling/parsed/baseline_test-fmath.json
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/nextline_test-fmath.txt  --out Memory_Modeling/parsed/nextline_test-fmath.json
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/oneblock_test-fmath.txt  --out Memory_Modeling/parsed/oneblock_test-fmath.json
+
+# anagram
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/baseline_anagram.txt  --out Memory_Modeling/parsed/baseline_anagram.json
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/nextline_anagram.txt  --out Memory_Modeling/parsed/nextline_anagram.json
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/oneblock_anagram.txt  --out Memory_Modeling/parsed/oneblock_anagram.json
+
+# test-llong
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/baseline_test-llong.txt  --out Memory_Modeling/parsed/baseline_test-llong.json
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/nextline_test-llong.txt  --out Memory_Modeling/parsed/nextline_test-llong.json
+python3 Memory_Modeling/scripts/parse_sim_stats.py --in results/oneblock_test-llong.txt  --out Memory_Modeling/parsed/oneblock_test-llong.json
+
+
+---------------------------------------------------
+STEP 2 — COMPUTE AMAT + CPI + IPC + ENERGY (SimpleScalar)
+---------------------------------------------------
+
+rm -f results/summary_with_energy.csv
+
+# test-math
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/baseline_test-math.json  --out results/summary_with_energy.csv --benchmark test-math --mode baseline --freq 2.5e9 --mainmem_latency 300
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/nextline_test-math.json  --out results/summary_with_energy.csv --benchmark test-math --mode nextline --freq 2.5e9 --mainmem_latency 300
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/oneblock_test-math.json  --out results/summary_with_energy.csv --benchmark test-math --mode oneblock --freq 2.5e9 --mainmem_latency 300
+
+# test-fmath
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/baseline_test-fmath.json  --out results/summary_with_energy.csv --benchmark test-fmath --mode baseline --freq 2.5e9 --mainmem_latency 300
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/nextline_test-fmath.json  --out results/summary_with_energy.csv --benchmark test-fmath --mode nextline --freq 2.5e9 --mainmem_latency 300
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/oneblock_test-fmath.json  --out results/summary_with_energy.csv --benchmark test-fmath --mode oneblock --freq 2.5e9 --mainmem_latency 300
+
+# anagram
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/baseline_anagram.json  --out results/summary_with_energy.csv --benchmark anagram --mode baseline --freq 2.5e9 --mainmem_latency 300
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/nextline_anagram.json  --out results/summary_with_energy.csv --benchmark anagram --mode nextline --freq 2.5e9 --mainmem_latency 300
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/oneblock_anagram.json  --out results/summary_with_energy.csv --benchmark anagram --mode oneblock --freq 2.5e9 --mainmem_latency 300
+
+# test-llong
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/baseline_test-llong.json  --out results/summary_with_energy.csv --benchmark test-llong --mode baseline --freq 2.5e9 --mainmem_latency 300
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/nextline_test-llong.json  --out results/summary_with_energy.csv --benchmark test-llong --mode nextline --freq 2.5e9 --mainmem_latency 300
+python3 Memory_Modeling/scripts/compute_amat_and_energy.py --sim Memory_Modeling/parsed/oneblock_test-llong.json  --out results/summary_with_energy.csv --benchmark test-llong --mode oneblock --freq 2.5e9 --mainmem_latency 300
+
+===================================================================
+PHASE 4 — CACTI ENERGY EXTRACTION
+===================================================================
+
+# ---------------------------------------------------------------
+# Clone CACTI and build
+# ---------------------------------------------------------------
+
+cd CACTI
+git clone https://github.com/HewlettPackard/cacti.git
+cd cacti
+make
+cd ../..
+
+# ---------------------------------------------------------------
+# Copy custom CACTI configuration files
+# ---------------------------------------------------------------
+# The il1.cfg, dl1.cfg, and l2.cfg files are provided in the
+# project root directory (Cache_Prefetching_Schemes/).
+# They MUST be copied into the CACTI/cacti folder before running.
+# ---------------------------------------------------------------
+
+cp il1.cfg CACTI/cacti/il1.cfg
+cp dl1.cfg CACTI/cacti/dl1.cfg
+cp l2.cfg CACTI/cacti/l2.cfg
+
+# ---------------------------------------------------------------
+# Run CACTI to generate modeled energy values
+# ---------------------------------------------------------------
+
+cd CACTI/cacti
+
+./cacti -infile il1.cfg > il1.out
+./cacti -infile dl1.cfg > dl1.out
+./cacti -infile l2.cfg  > l2.out
+
+cd ../..
+
+===================================================================
+PHASE 5 — MERGE CACTI ENERGY INTO FINAL CSV
+===================================================================
+
+python3 Memory_Modeling/scripts/merge_cacti_energy.py \
+    results/summary_with_energy.csv \
+    results/summary_with_energy_final.csv \
+    CACTI/cacti/il1.out \
+    CACTI/cacti/dl1.out \
+    CACTI/cacti/l2.out
+
+
+===================================================================
+PHASE 6 — PLOTTING (OPTIONAL but recommended)
+===================================================================
+
+# Create virtual environment to avoid numpy conflicts
+python3 -m venv venv
+source venv/bin/activate
+
+pip install --upgrade pip
+pip install numpy pandas matplotlib
+
+python Memory_Modeling/scripts/plot_results.py
+
+deactivate
+
+
+===================================================================
+FINAL OUTPUTS
+===================================================================
+
+results/
+   baseline_*.txt
+   nextline_*.txt
+   oneblock_*.txt
+   summary_with_energy.csv
+   summary_with_energy_final.csv
+   plot_*.png
+
+Memory_Modeling/parsed/
+   *.json
+
+CACTI/cacti/
+   il1.out
+   dl1.out
+   l2.out
+
+===================================================================
+END OF COMMANDS
+===================================================================
