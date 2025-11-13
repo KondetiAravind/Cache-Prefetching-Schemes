@@ -1,6 +1,3 @@
-Below is a **professional, complete, well-structured README.md** formatted exactly for your GitHub repository:
-
----
 
 # **Cache Prefetching Schemes — Advanced Computer Architecture Lab Project**
 
